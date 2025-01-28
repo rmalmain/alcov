@@ -1,0 +1,18 @@
+[package]
+name = "alcov-cli"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "alcov"
+path = "src/main.rs"
+
+[features]
+default = ["v0"]
+
+v0 = ["alcov/v0"]
+
+[dependencies]
+alcov = { path = "../alcov" }
+clap = { version = "4.5.27", features = ["derive"] }
+clap-stdin = "0.6.0"

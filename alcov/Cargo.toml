@@ -1,0 +1,21 @@
+[package]
+name = "alcov"
+authors = ["Romain Malmain <rmalmain.pm.me>"]
+version = "0.1.0"
+edition = "2024"
+
+[features]
+default = ["v0"]
+
+v0 = []
+
+[dependencies]
+bitflags = "2.8.0"
+lzma-rs = "0.3.0"
+byteorder = "1.5.0"
+
+[dev-dependencies]
+tempfile = "3.16.0"
+
+[build-dependencies]
+bindgen = "0.71.1"
