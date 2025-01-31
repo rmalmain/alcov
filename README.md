@@ -17,7 +17,7 @@ Other coverage file format, among others:
 
 The latest version of alcov is `v0.1`.
 
-- [alcov v0 specification](v0)
+- [latest alcov specification](v0)
 
 ## Library
 
