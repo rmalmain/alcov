@@ -1,8 +1,9 @@
-use std::collections::hash_map::Entry;
-use std::collections::HashMap;
-use std::io::{Cursor, Read, Write};
+use crate::v0::{AlcovBlockMetadata, ED, Error};
 use byteorder::{ReadBytesExt, WriteBytesExt};
-use crate::v0::{AlcovBlockMetadata, Error, ED};
+use std::collections::HashMap;
+use std::collections::hash_map::Entry;
+use std::io::{Cursor, Read, Write};
+use crate::AlcovBlock;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AlcovDstBlockEdge {
@@ -67,10 +68,31 @@ impl AlcovEdges {
     ///
     /// If the edge is already present, it will only increment to taken counter for this
     /// particular edge.
+    /// 
+    /// If either src_block or dst_block is invalid, an error is returned.
+    pub fn add(&mut self, blocks: &Vec<AlcovBlock>, src_block: u64, dst_block: u64) -> Result<(), Error> {
+        if src_block as usize >= blocks.len() {
+            Err(Error::EdgeWithoutBlock {
+                block_id: src_block
+            })
+        } else if dst_block as usize >= blocks.len() {
+            Err(Error::EdgeWithoutBlock {
+                block_id: dst_block
+            })
+        } else {
+            self.add_unchecked(src_block, dst_block);
+            Ok(())
+        }
+    }
+
+    /// Adds an edge to the collection.
+    ///
+    /// If the edge is already present, it will only increment to taken counter for this
+    /// particular edge.
     ///
     /// Warning: no check is performed on src_block or dst_block. It can lead to important
     /// memory increases.
-    pub fn add(&mut self, src_block: u64, dst_block: u64) {
+    pub fn add_unchecked(&mut self, src_block: u64, dst_block: u64) {
         let src_idx = usize::try_from(src_block).unwrap();
 
         if src_idx >= self.adj_list.len() {
@@ -164,4 +186,3 @@ impl AlcovBlockEdges {
         Ok(Self { dst_modules })
     }
 }
-

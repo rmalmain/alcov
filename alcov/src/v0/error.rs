@@ -13,6 +13,9 @@ pub enum Error {
     PathReadError(FromBytesUntilNulError),
     PathEncodingError,
     DecompressError(lzma_rs::error::Error),
+    EdgeWithoutBlock{
+        block_id: u64,
+    },
 }
 
 impl From<io::Error> for Error {

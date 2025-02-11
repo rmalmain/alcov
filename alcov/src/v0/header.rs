@@ -1,10 +1,10 @@
-use std::{fmt, iter};
+use crate::v0::{ED, Error, bindings};
+use bitflags::bitflags;
+use byteorder::ReadBytesExt;
 use std::fmt::{Display, Formatter};
 use std::io::{Read, Write};
 use std::path::PathBuf;
-use bitflags::bitflags;
-use byteorder::ReadBytesExt;
-use crate::v0::{bindings, Error, ED};
+use std::{fmt, iter};
 
 bitflags! {
     #[derive(Debug, Clone, PartialEq, Eq)]
@@ -20,8 +20,8 @@ bitflags! {
 pub struct AlcovHeaderMetadata {
     pub version_major: u64,
     pub version_minor: u64,
-    pub nb_modules: u32,
-    pub nb_blocks: u32,
+    pub nb_modules: u16,
+    pub nb_blocks: u64,
     pub nb_edges: u64,
     pub modules_start: u64,
     pub paths_start: u64,
@@ -81,8 +81,8 @@ impl AlcovHeaderMetadata {
 
         let version_major = reader.read_u64::<ED>()?;
         let version_minor = reader.read_u64::<ED>()?;
-        let nb_modules = reader.read_u32::<ED>()?;
-        let nb_blocks = reader.read_u32::<ED>()?;
+        let nb_modules = reader.read_u16::<ED>()?;
+        let nb_blocks = reader.read_u64::<ED>()?;
         let nb_edges = reader.read_u64::<ED>()?;
         let modules_start = reader.read_u64::<ED>()?;
         let paths_start = reader.read_u64::<ED>()?;
@@ -120,4 +120,3 @@ impl AlcovHeader {
         }
     }
 }
-

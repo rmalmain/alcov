@@ -1,9 +1,9 @@
+use crate::v0::{ED, Error};
+use byteorder::{ReadBytesExt, WriteBytesExt};
 use std::ffi::CStr;
 use std::io::{Read, Write};
 use std::ops::Range;
 use std::path::PathBuf;
-use byteorder::{ReadBytesExt, WriteBytesExt};
-use crate::v0::{Error, ED};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlcovSegment {
@@ -110,4 +110,3 @@ impl AlcovModule {
         })
     }
 }
-

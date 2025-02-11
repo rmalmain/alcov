@@ -1,9 +1,11 @@
 use lzma_rs::lzma2_decompress;
 use std::ffi::{CStr, CString};
+use std::io;
 use std::io::{Cursor, Read, Write};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use std::io;
+
+pub mod bindings;
 
 pub mod error;
 pub use error::Error;
@@ -12,23 +14,16 @@ pub mod block;
 pub use block::{AlcovBlock, AlcovBlockMetadata};
 
 pub mod edge;
-pub use edge::{AlcovEdges, AlcovDstBlockEdgeMetadata, AlcovBlockEdges, AlcovBlockEdgesMetadata, AlcovDstBlockEdge};
+pub use edge::{
+    AlcovBlockEdges, AlcovBlockEdgesMetadata, AlcovDstBlockEdge, AlcovDstBlockEdgeMetadata,
+    AlcovEdges,
+};
 
 pub mod header;
-pub use header::{AlcovHeaderMetadata, AlcovHeader, AlcovFlags};
+pub use header::{AlcovFlags, AlcovHeader, AlcovHeaderMetadata};
 
 pub mod module;
 pub use module::{AlcovModule, AlcovSegment};
-
-
-mod bindings {
-    #![expect(non_camel_case_types)]
-    #![expect(unsafe_op_in_unsafe_fn)]
-    #![expect(dead_code)]
-    #![expect(non_upper_case_globals)]
-
-    include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
-}
 
 pub type ED = byteorder::LE;
 
@@ -217,8 +212,8 @@ impl Alcov {
             paths_start,
             blocks_start,
             edges_start,
-            nb_modules: self.modules.len() as u32,
-            nb_blocks: self.blocks.len() as u32,
+            nb_modules: u16::try_from(self.modules.len())?,
+            nb_blocks: u64::try_from(self.blocks.len())?,
             nb_edges,
             flags,
         };
@@ -344,50 +339,51 @@ impl Alcov {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::NamedTempFile;
 
     #[test]
     fn test_simple() {
         let hdr = AlcovHeader::new(Some("abcd"), true);
 
         let modules = vec![
-            AlcovModule::new(0, Some(PathBuf::from("/home/abc")), vec![
-                AlcovSegment::new(0..0x1000),
-                AlcovSegment::new(0x2000..0x3000),
-                AlcovSegment::new(0xaaaaaaaaa..0xbbbbbbbbbbbbbb),
-            ])
+            AlcovModule::new(
+                0,
+                Some(PathBuf::from("/home/abc")),
+                vec![
+                    AlcovSegment::new(0..0x1000),
+                    AlcovSegment::new(0x2000..0x3000),
+                    AlcovSegment::new(0xaaaaaaaaa..0xbbbbbbbbbbbbbb),
+                ],
+            )
             .unwrap(),
-            AlcovModule::new(0x12345, None, vec![
-                AlcovSegment::new(0..0x1000),
-                AlcovSegment::new(0xaaaaaaaaa..0xbbbbbbbbbbbbbb),
-            ])
+            AlcovModule::new(
+                0x12345,
+                None,
+                vec![
+                    AlcovSegment::new(0..0x1000),
+                    AlcovSegment::new(0xaaaaaaaaa..0xbbbbbbbbbbbbbb),
+                ],
+            )
             .unwrap(),
         ];
 
+        // create dummy blocks
         let blocks = vec![
             AlcovBlock::new(0, 0, 500, 32, 12),
             AlcovBlock::new(0, 0, 560, 16, 3),
             AlcovBlock::new(0, 0, 620, 47, 1),
         ];
 
+        // create dummy edges to dummy blocks
         let mut edges = AlcovEdges::new();
-        edges.add(0, 1);
-        edges.add(0, 1);
-        edges.add(1, 2);
-        edges.add(2, 0);
+        edges.add(&blocks, 0, 1).unwrap();
+        edges.add(&blocks, 0, 1).unwrap();
+        edges.add(&blocks, 1, 2).unwrap();
+        edges.add(&blocks, 2, 0).unwrap();
 
         let alcov = Alcov::new(hdr, modules, blocks, Some(edges));
 
         let mut out_buf: Vec<u8> = Vec::new();
-        {
-            let mut out_cursor = Cursor::new(&mut out_buf);
-            alcov.write(&mut out_cursor).unwrap();
-        }
-
-        let mut tmpfile = NamedTempFile::new().unwrap();
-        println!("path: {}", tmpfile.path().display());
-        tmpfile.write_all(&out_buf).unwrap();
-        tmpfile.keep().unwrap();
+        alcov.write(&mut out_buf).unwrap();
 
         let mut out_cursor = Cursor::new(&mut out_buf);
         let new_alcov = Alcov::read(&mut out_cursor).unwrap();

@@ -1,13 +1,13 @@
-use std::io::{Read, Write};
+use crate::v0::{AlcovBlockEdges, AlcovBlockEdgesMetadata, ED, Error};
 use byteorder::{ReadBytesExt, WriteBytesExt};
-use crate::v0::{AlcovBlockEdges, AlcovBlockEdgesMetadata, Error, ED};
+use std::io::{Read, Write};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlcovBlock {
-    pub module_id: u8,
-    pub segment_id: u8,
-    pub segment_offset: u32,
-    pub size: u16,
+    pub module_id: u16,
+    pub segment_id: u16,
+    pub segment_offset: u64,
+    pub size: u32,
     pub nb_taken: u64,
 }
 
@@ -19,10 +19,10 @@ pub struct AlcovBlockMetadata {
 
 impl AlcovBlock {
     pub fn new(
-        module_id: u8,
-        segment_id: u8,
-        segment_offset: u32,
-        size: u16,
+        module_id: u16,
+        segment_id: u16,
+        segment_offset: u64,
+        size: u32,
         nb_taken: u64,
     ) -> Self {
         Self {
@@ -42,10 +42,10 @@ impl AlcovBlock {
     where
         W: Write,
     {
-        writer.write_u32::<ED>(self.segment_offset)?;
-        writer.write_u16::<ED>(self.size)?;
-        writer.write_u8(self.module_id)?;
-        writer.write_u8(self.segment_id)?;
+        writer.write_u64::<ED>(self.segment_offset)?;
+        writer.write_u32::<ED>(self.size)?;
+        writer.write_u16::<ED>(self.module_id)?;
+        writer.write_u16::<ED>(self.segment_id)?;
         if let Some((out_edges, out_edges_md)) = out_edges {
             writer.write_u64::<ED>(out_edges.dst_modules.len() as u64)?;
             writer.write_u64::<ED>(out_edges_md.out_edges_offset)?;
@@ -62,10 +62,10 @@ impl AlcovBlock {
     where
         R: Read,
     {
-        let segment_offset = reader.read_u32::<ED>()?;
-        let size = reader.read_u16::<ED>()?;
-        let module_id = reader.read_u8()?;
-        let segment_id = reader.read_u8()?;
+        let segment_offset = reader.read_u64::<ED>()?;
+        let size = reader.read_u32::<ED>()?;
+        let module_id = reader.read_u16::<ED>()?;
+        let segment_id = reader.read_u16::<ED>()?;
         let nb_out_edges = reader.read_u64::<ED>()?;
         let out_edges_offset = reader.read_u64::<ED>()?;
         let nb_taken = reader.read_u64::<ED>()?;
@@ -85,4 +85,3 @@ impl AlcovBlock {
         ))
     }
 }
-
